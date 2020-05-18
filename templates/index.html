@@ -8,10 +8,23 @@
       #error {
         display: none;
       }
+      li {
+        clear: both;
+      }
+      li button {
+        -webkit-appearance: none;
+        border: none;
+        outline: none;
+        color: red;
+        float: right;
+        cursor: pointer;
+        font-size: 20px;
+      }
       ul {
         list-style : none;
         padding: 0;
         margin: 0;
+        width: 200px;
       }
     </style>
   </head>
@@ -23,10 +36,39 @@
     </form>
     <ul id="todos">
       {% for d in data %}
-      <li><input data-id="{{d.id}}" class="check-completed" type="checkbox" {% if d.completed %}checked{% endif %} /> {{ d.description }}</li>
+      <li>
+        <input data-id="{{d.id}}" class="check-completed" type="checkbox" {% if d.completed %}checked{% endif %} />
+        {{ d.description }}
+        <button data-id="{{d.id}}" class="delete-reminder">&cross;</button>
+      </li>
       {% endfor %}
     </ul>
     <script>
+
+      // Delete reminder
+      const buttons = document.querySelectorAll('.delete-reminder')
+      for (let i = 0; i < buttons.length; i++) {
+        const aButton = buttons[i];
+        aButton.onclick = function(e) {
+          console.log('event', e);
+          const todoId = e.target.dataset['id'];
+          fetch('todos/' + todoId + '/delete', {
+            method: 'DELETE'
+          })
+          .then(function(response) {
+            // After delete has succeeded, redirect back to front page.
+            window.location.href = "/";
+          })
+          .then(response => {
+            document.getElementById('error').className = 'hidden';
+          })
+          .catch(function() {
+            document.getElementById('error').className = '';
+          })
+        }
+      }
+
+      // Checkboxes for updating reminder 'completed' status
       const checkboxes = document.querySelectorAll('.check-completed');
       for (let i = 0; i < checkboxes.length; i++) {
         const checkbox = checkboxes[i]
@@ -52,7 +94,7 @@
         }
       }
 
-
+      // Creating new reminder
       const descInput = document.getElementById('description');
       document.getElementById('form').onsubmit = function(e) {
         e.preventDefault();

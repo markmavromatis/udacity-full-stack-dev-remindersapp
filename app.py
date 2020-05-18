@@ -63,6 +63,21 @@ def set_completed_todo(todo_id):
     db.session.close()
   return redirect(url_for('index'))
 
+# Delete a reminder
+@app.route('/todos/<todo_id>/delete', methods=['DELETE'])
+def delete(todo_id):
+  try:
+    todo = Todo.query.get(todo_id);
+    db.session.delete(todo);
+    db.session.commit();
+  except:
+    error = True
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  return jsonify({"success": True})
+
 
 
 
