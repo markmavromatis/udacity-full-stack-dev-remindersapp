@@ -20,29 +20,43 @@
         cursor: pointer;
         font-size: 20px;
       }
-      ul {
+      .lists-wrapper, .todos-wrapper {
         list-style : none;
         padding: 0;
         margin: 0;
-        width: 200px;
+        width: 300px;
+        display: inline-block;
+        vertical-align: top
       }
     </style>
   </head>
   <body>
     <div id="error" class="hidden">Something went wrong!</div>
-    <form id="form" method="post" action="/todos/create">
-      <input type="text" id="description" name="description" />
-      <input type="submit" value="Create" />
-    </form>
-    <ul id="todos">
-      {% for d in data %}
-      <li>
-        <input data-id="{{d.id}}" class="check-completed" type="checkbox" {% if d.completed %}checked{% endif %} />
-        {{ d.description }}
-        <button data-id="{{d.id}}" class="delete-reminder">&cross;</button>
-      </li>
-      {% endfor %}
-    </ul>
+    <div class="lists-wrapper">
+      <ul id="lists">
+        {% for list in lists %}
+        <li>
+          <a href="/lists/{{ list.id }}">{{ list.name }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="todos-wrapper">
+      <form id="form" method="post" action="/todos/create">
+        <input type="text" id="description" name="description" />
+        <input type="submit" value="Create" />
+      </form>
+      <h4>{{active_list.name}}</h4>
+      <ul id="todos">
+        {% for todo in todos %}
+        <li>
+          <input data-id="{{todo.id}}" class="check-completed" type="checkbox" {% if todo.completed %}checked{% endif %} />
+          {{ todo.description }}
+          <button data-id="{{todo.id}}" class="delete-reminder">&cross;</button>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
     <script>
 
       // Delete reminder
