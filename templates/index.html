@@ -32,17 +32,21 @@
   </head>
   <body>
     <div id="error" class="hidden">Something went wrong!</div>
+    <input type="text" id="listName" name="listName" />
+    <button id="createList" class="create-list">Create List</button>
     <div class="lists-wrapper">
       <ul id="lists">
         {% for list in lists %}
         <li>
+          <input data-id="{{list.id}}" class="check-completed-list" type="checkbox"/>
           <a href="/lists/{{ list.id }}">{{ list.name }}</a>
+          <button data-id="{{list.id}}" class="delete-list">&cross;</button>
         </li>
         {% endfor %}
       </ul>
     </div>
     <div class="todos-wrapper">
-      <form id="form" method="post" action="/todos/create">
+      <form id="form">
         <input type="text" id="description" name="description" />
         <input type="submit" value="Create" />
       </form>
@@ -50,7 +54,7 @@
       <ul id="todos">
         {% for todo in todos %}
         <li>
-          <input data-id="{{todo.id}}" class="check-completed" type="checkbox" {% if todo.completed %}checked{% endif %} />
+          <input data-id="{{todo.id}}" class="check-completed-todo" type="checkbox" {% if todo.completed %}checked{% endif %} />
           {{ todo.description }}
           <button data-id="{{todo.id}}" class="delete-reminder">&cross;</button>
         </li>
@@ -66,12 +70,12 @@
         aButton.onclick = function(e) {
           console.log('event', e);
           const todoId = e.target.dataset['id'];
-          fetch('todos/' + todoId + '/delete', {
+          fetch('/todos/' + todoId + '/delete', {
             method: 'DELETE'
           })
           .then(function(response) {
             // After delete has succeeded, redirect back to front page.
-            window.location.href = "/";
+            window.location.href = "/lists/{{active_list.id}}";
           })
           .then(response => {
             document.getElementById('error').className = 'hidden';
@@ -82,15 +86,37 @@
         }
       }
 
+      // Delete list
+      const listButtons = document.querySelectorAll('.delete-list')
+      for (let i = 0; i < listButtons.length; i++) {
+        const aButton = listButtons[i];
+        aButton.onclick = function(e) {
+          console.log('event', e);
+          const listId = e.target.dataset['id'];
+          fetch('/lists/' + listId + '/delete', {
+            method: 'DELETE'
+          })
+          .then(function(response) {
+            // After delete has succeeded, redirect back to front page.
+            window.location.href = "/lists/{{active_list.id}}";
+          })
+          .then(response => {
+            document.getElementById('error').className = 'hidden';
+          })
+          .catch(function() {
+            document.getElementById('error').className = '';
+          })
+        }
+      }
       // Checkboxes for updating reminder 'completed' status
-      const checkboxes = document.querySelectorAll('.check-completed');
+      const checkboxes = document.querySelectorAll('.check-completed-todo');
       for (let i = 0; i < checkboxes.length; i++) {
         const checkbox = checkboxes[i]
         checkbox.onchange = function(e) {
           console.log('event', e);
           const newCompleted = e.target.checked;
           const todoId = e.target.dataset['id'];
-          fetch('/todos/' + todoId + '/set-completed', {
+          fetch('/todos/' + todoId + '/set-completed-todo', {
             method: 'POST',
             body: JSON.stringify({
               'completed': newCompleted
@@ -108,16 +134,41 @@
         }
       }
 
+      // Checkboxes for updating 'completed' status for all reminders in a list
+      const listCheckboxes = document.querySelectorAll('.check-completed-list');
+      for (let i = 0; i < listCheckboxes.length; i++) {
+        const checkbox = listCheckboxes[i]
+        checkbox.onchange = function(e) {
+          console.log('event', e);;
+          const listId = e.target.dataset['id'];
+          fetch('/todos/' + listId + '/set-completed-list', {
+            method: 'POST'
+          })
+          .then(function(response) {
+            // After delete has succeeded, redirect back to front page.
+            window.location.href = "/";
+          })
+          .then(response => {
+            document.getElementById('error').className = 'hidden';
+          })
+          .catch(function() {
+            document.getElementById('error').className = '';
+          })
+        }
+      }
+
       // Creating new reminder
       const descInput = document.getElementById('description');
       document.getElementById('form').onsubmit = function(e) {
         e.preventDefault();
         const desc = descInput.value;
+
         descInput.value = '';
-        fetch('/todos/create', {
+        fetch('/todos/createToDo', {
           method: 'POST',
           body: JSON.stringify({
             'description': desc,
+            'list_id': parseInt("{{active_list.id}}")
           }),
           headers: {
             'Content-Type': 'application/json',
@@ -135,6 +186,35 @@
           document.getElementById('error').className = '';
         })
       }
+
+      const listNameField = document.getElementById('listName')
+      document.getElementById('createList').onclick = function(e) {
+        console.log('event', e);
+        const listName = listNameField.value;
+        // console.log('List name = ' + listName);
+        listNameField.value = '';
+        fetch('/todos/createList', {
+          method: 'POST',
+          body: JSON.stringify({
+            'name': listName,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        .then(function(response) {
+            // After list created, redirect back to front page.
+            window.location.href = "/";
+          })
+          .then(response => {
+            document.getElementById('error').className = 'hidden';
+          })
+          .catch(function() {
+            document.getElementById('error').className = '';
+          })
+
+      }
+      
     </script>
   </body>
 </html>

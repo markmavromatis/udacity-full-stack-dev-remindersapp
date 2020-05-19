@@ -30,19 +30,20 @@ class TodoList(db.Model):
   __tablename__ = 'todolists'
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String(), nullable = False)
-  todos = db.relationship('Todo', backref = 'list', lazy = False)
+  todos = db.relationship('Todo', backref = 'list', lazy = False, cascade ="all, delete-orphan")
 
   def __repr__(self):
     return f'<Todo List {self.id} {self.description}'
 
 # Adds a new reminder
-@app.route('/todos/create', methods=['POST'])
+@app.route('/todos/createToDo', methods=['POST'])
 def create_todo():
   error = False
   body = {}
   try:
     description = request.get_json()['description']
-    todo = Todo(description=description)
+    list_id = request.get_json()['list_id']
+    todo = Todo(description=description, list_id=list_id)
     db.session.add(todo)
     db.session.commit()
     body['description'] = todo.description
@@ -57,8 +58,30 @@ def create_todo():
   else:
     return jsonify(body)
 
+# Adds a new reminders list
+@app.route('/todos/createList', methods=['POST'])
+def create_list():
+  error = False
+  body = {}
+  try:
+    name = request.get_json()['name']
+    new_list = TodoList(name=name)
+    db.session.add(new_list)
+    db.session.commit()
+    body['name'] = new_list.name
+  except:
+    error = True
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  if error:
+    abort (400)
+  else:
+    return jsonify(body)
+
 # Update the completed status of a reminder
-@app.route('/todos/<todo_id>/set-completed', methods=['POST'])
+@app.route('/todos/<todo_id>/set-completed-todo', methods=['POST'])
 def set_completed_todo(todo_id):
   try:
     completed = request.get_json()['completed']
@@ -73,12 +96,47 @@ def set_completed_todo(todo_id):
     db.session.close()
   return redirect(url_for('index'))
 
+# Update the completed status of a list
+@app.route('/todos/<list_id>/set-completed-list', methods=['POST'])
+def set_completed_list(list_id):
+  try:
+    todos = Todo.query.filter_by(list_id = list_id).all()
+    # print("Found " + str(todos.count()) + " todos!")
+    for each_todo in todos:
+      print("HI")
+      db.session.add(each_todo)
+      print("Checking completed status of todo: " + str(each_todo.id))
+      each_todo.completed = True
+    db.session.commit()
+  except:
+    error = True
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  return redirect(url_for('index'))
+
 # Delete a reminder
 @app.route('/todos/<todo_id>/delete', methods=['DELETE'])
-def delete(todo_id):
+def deleteTodo(todo_id):
   try:
-    todo = Todo.query.get(todo_id);
-    db.session.delete(todo);
+    todo = Todo.query.get(todo_id)
+    db.session.delete(todo)
+    db.session.commit()
+  except:
+    error = True
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  return jsonify({"success": True})
+
+# Delete a reminder list
+@app.route('/lists/<list_id>/delete', methods=['DELETE'])
+def deleteList(list_id):
+  try:
+    todo_list = TodoList.query.get(list_id);
+    db.session.delete(todo_list);
     db.session.commit();
   except:
     error = True
@@ -94,7 +152,7 @@ def delete(todo_id):
 # Get list of Todos for a specific Todos List
 @app.route('/lists/<list_id>')
 def get_list_todos(list_id):
-  lists = TodoList.query.all()
+  lists = TodoList.query.order_by('id').all()
   todos = Todo.query.filter_by(list_id = list_id).order_by('id').all()
   active_list = TodoList.query.get(list_id)
   return render_template('index.html', todos = todos, lists = lists, active_list = active_list)
